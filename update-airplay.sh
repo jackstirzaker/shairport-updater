@@ -17,7 +17,7 @@ update_repo() {
     log "Cloning $url"
     git clone "$url" "$dir"
   fi
-  git -C "$dir" fetch --quiet origin
+  git -C "$dir" fetch --quiet --tags origin
   local local_rev remote_rev
   local_rev="$(git -C "$dir" rev-parse HEAD)"
   remote_rev="$(git -C "$dir" rev-parse '@{u}')"
