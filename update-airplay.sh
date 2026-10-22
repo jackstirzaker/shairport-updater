@@ -10,7 +10,12 @@ FORCE=0
 
 log() { printf '\n==> %s\n' "$*"; }
 
-# Clone or fast-forward a repo. Returns 0 if it changed (or --force), 1 if already current.
+# Newest release tag (e.g. 5.6.1). Skips dev, pre-release and other non-release tags.
+latest_release() {
+  git -C "$1" tag --list | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1
+}
+
+# Clone or check out the latest release. Returns 0 if it changed (or --force), 1 if already current.
 update_repo() {
   local url="$1" dir="$2"
   if [[ ! -d "$dir/.git" ]]; then
@@ -18,15 +23,16 @@ update_repo() {
     git clone "$url" "$dir"
   fi
   git -C "$dir" fetch --quiet --tags origin
-  local local_rev remote_rev
+  local tag local_rev release_rev
+  tag="$(latest_release "$dir")"
   local_rev="$(git -C "$dir" rev-parse HEAD)"
-  remote_rev="$(git -C "$dir" rev-parse '@{u}')"
-  if [[ "$local_rev" == "$remote_rev" && $FORCE -eq 0 ]]; then
-    log "$(basename "$dir") is already up to date ($(git -C "$dir" describe --always --dirty))"
+  release_rev="$(git -C "$dir" rev-parse "$tag^{commit}")"
+  if [[ "$local_rev" == "$release_rev" && $FORCE -eq 0 ]]; then
+    log "$(basename "$dir") is already up to date ($tag)"
     return 1
   fi
-  log "Updating $(basename "$dir")"
-  git -C "$dir" pull --ff-only
+  log "Updating $(basename "$dir") to $tag"
+  git -C "$dir" checkout --quiet "$tag"
   return 0
 }
 
