@@ -50,6 +50,17 @@ build_install() {
   sudo make install
 }
 
+# Skip everything if a client is streaming, since a rebuild or restart would cut it off.
+# Shairport Sync listens on 5000 (classic AirPlay) and 7000 (AirPlay 2).
+airplay_active() {
+  ss -Htn state established '( sport = :5000 or sport = :7000 )' | grep -q .
+}
+
+if airplay_active; then
+  log "AirPlay session in progress; skipping update."
+  exit 0
+fi
+
 mkdir -p "$SRC_DIR"
 NQPTP_DIR="$SRC_DIR/nqptp"
 SHAIRPORT_DIR="$SRC_DIR/shairport-sync"
